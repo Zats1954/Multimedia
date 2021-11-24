@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Multimedia</string>
+    <string name="click_me">Click me</string>
+    <string name="playTime">0.00</string>
+</resources>
