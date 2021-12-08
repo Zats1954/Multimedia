@@ -13,16 +13,25 @@ class SongRepositoryImplement(private val resource: InputStream): SongRepository
 
     private   val gson = Gson()
     private   val listSongType = TypeToken.getParameterized(Albom::class.java).type
-    val myReader = InputStreamReader(resource)
-    val albom: Albom = gson.fromJson(myReader, listSongType)
-    val songPrefix = "https://${albom.subtitle}/examples/mp3/${albom.title}"
-    val songs = albom.tracks.map{song ->
-        song.copy(file = "${songPrefix}${song.file}")}
-    private val data = MutableLiveData(songs)
+    private   val myReader = InputStreamReader(resource)
+    private   val albom: Albom = gson.fromJson(myReader, listSongType)
+    private   val songPrefix = "https://${albom.subtitle}/examples/mp3/${albom.title}"
+    private   val songs = albom.tracks
+//    private val data = MutableLiveData(songs)
+//    override fun getSongs(): LiveData<List<Song>> = data
 
+    override fun getSongs() = songs
 
-    override fun getSongs(): LiveData<List<Song>> = data
+    override fun getPrefix() = songPrefix
 
-    override fun getPrefix(): String{
-        return songPrefix }
+    override fun getAlbom() = albom.title
+
+    override fun getArtist() = albom.artist
+
+    override fun getInfo() = "${albom.published}  ${albom.genre}"
+
+    fun getSongName(id:Int) = albom.tracks.get(id).file
+
+    fun getsongPrefix() = "https://${albom.subtitle}/examples/mp3/${albom.title}"
+
 }
