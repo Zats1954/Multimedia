@@ -64,6 +64,7 @@ dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
     implementation "com.google.code.gson:gson:$gson_version"
     implementation "androidx.recyclerview:recyclerview:$recyclerview_version"
+    implementation "androidx.recyclerview:recyclerview-selection:1.1.0"
     implementation "androidx.activity:activity-ktx:$activity_version"
 
     testImplementation "junit:junit:$junit_version"

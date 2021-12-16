@@ -1,15 +1,14 @@
 package com.android.multimedia.viewmodel
 
-import android.media.MediaPlayer
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import com.android.multimedia.Song
 import com.android.multimedia.repository.SongRepository
 import com.android.multimedia.repository.SongRepositoryImplement
 import java.io.InputStream
 
-
 class SongViewModel(private val myResource: InputStream): ViewModel() {
-
 
     private val repository: SongRepository = SongRepositoryImplement(myResource)
     val albom = repository.getAlbom()
@@ -17,37 +16,21 @@ class SongViewModel(private val myResource: InputStream): ViewModel() {
     val info = repository.getInfo()
     val songPrefix = repository.getPrefix()
     var listSongs = repository.getSongs()
-    private val player: MediaPlayer? = MediaPlayer()
-
-    fun preparePlay(song:Song){
-        player?.reset()
-        player?.setDataSource( songPrefix + song.file)
-        player?.prepare()
-        val playSec: Int = player?.duration?.let { it / 1000 } ?: 1
-        val playLength = TimeToString(playSec)
-
-    }
-
-    fun playNext(song: Song) {
-         if(song.id == listSongs.lastIndex){
-             play(listSongs.get(0))
-         } else {
-             play(listSongs.get(song.id + 1))
-         }
-    }
+//    val _playingTime = MutableLiveData<Int>()
+//    val playingTime: LiveData<Int>
+//        get() = _playingTime
 
 
-    private fun play(song: Song) {
-
-    }
-
-    private fun TimeToString(playSec: Int): String {
-        var playSec1 = playSec
-        val playMin: Int = playSec1 / 60
-        playSec1 = playSec1 % 60
-        if (playSec1 < 10)
-            return "${playMin}:0${playSec1}"
-        else
-            return "${playMin}:${playSec1}"
+    fun getNext(song: Song): Song {
+        listSongs.indexOfFirst { nom -> nom.id == song.id
+        }?.let{
+            if(it == listSongs.lastIndex){
+                listSongs.get(0)
+            } else {
+                listSongs.get(it + 1)
+            }
+        }?.let{song -> return song }
+        println("!!нет песни с id ${song.id}")
+        throw Exception()
     }
 }

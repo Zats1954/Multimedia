@@ -9,20 +9,18 @@ import com.android.multimedia.MediaLifecycleObserver
 import com.android.multimedia.Song
 import com.android.multimedia.databinding.CardSongBinding
 import kotlinx.coroutines.*
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flow
-import java.util.concurrent.atomic.AtomicBoolean
 
 
 interface OnInteractionListener {
-    fun onComplite(song: Song) {}
+    fun onComplite(song: Song): Song
+    fun clickSong(songId: Int): Song
 }
 
 class SongAdapter(
     private val onInteractionListener: OnInteractionListener,
     private val songPrefix: String
-) : ListAdapter<Song, SongViewHolder>(SongDiffCallback()) {
 
+) : ListAdapter<Song, SongViewHolder>(SongDiffCallback()) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): SongViewHolder {
         val binding = CardSongBinding.inflate(LayoutInflater.from(parent.context), parent, false)
@@ -32,10 +30,8 @@ class SongAdapter(
     override fun onBindViewHolder(holder: SongViewHolder, position: Int) {
         val song = getItem(position)
         holder.bind(song)
-
     }
 }
-
 
 class SongViewHolder(
     private val binding: CardSongBinding,
@@ -44,51 +40,39 @@ class SongViewHolder(
 ) : RecyclerView.ViewHolder(binding.root) {
     private val mediaObserver = MediaLifecycleObserver()
     private val checkTime = 1000L
-    private var checkButton: Boolean = false
+    var playDuration: Int = 1
+    var playingSongId: Int = 0
+
     private val player = mediaObserver.player
-    private var isPaused: AtomicBoolean = AtomicBoolean()
 
-    fun bind(song: Song) {
+    fun bind( song: Song) {
+
         binding.apply {
-            player?.reset()
-            player?.setDataSource(
-                 songPrefix + song.file
-//                "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"
-            )
-            player?.prepare()
-            val playSec: Int = player?.duration?.let { it / 1000 } ?: 1
-            val playLength = TimeToString(playSec)
 
-            tvSongName.setText(song.file)
-            tvLength.setText("0:00/${playLength}")
-            progressBar.max = player?.duration ?: 1
-            progressBar.progress = 0
-
-
-//            val barPosition: Flow<Int> = flow {
-//                delay(500L)
-//                if (player?.isPlaying == true)
-//                    emit(player?.getCurrentPosition())
-//                else
-//                    emit(playSec)
-//            }
+            songData(song)   /* to install song's duration time */
 
             play.setOnClickListener {
+                println("***************************  playing song ${song.id} ${song.file}")
+                val songFile = onInteractionListener.clickSong(song.id)
+                if (songFile.id != playingSongId) {
+                    songData(song)
+                }
+                /*   ***************************************************** */
+                playingSongId = song.id
+                val playLength = player?.duration
                 var currentSec: Int
                 var currentSecOld: Int = 0
                 var currentTime: String
-                if (checkButton) {
+
+
+                if (!play.isChecked) {
                     player?.pause()
-                    isPaused.set(true)
-                    checkButton = !checkButton
                 } else {
-                    isPaused.set(false)
                     player?.start()
                     CoroutineScope(Dispatchers.IO).launch {
-                        while (!isPaused.get()) {
+                        while (play.isChecked) {
                             withTimeout(checkTime) {
                                 try {
-//                                    barPosition.collect {
                                     delay(100)  /* для возможности включения паузы */
                                     if (player?.isPlaying ?: false) {
                                         currentSec = player?.currentPosition ?: 1
@@ -97,30 +81,31 @@ class SongViewHolder(
                                     }
                                     currentSecOld = currentSec
                                     currentTime = TimeToString(currentSec / 1000) + "/" + playLength
-                                    tvLength.text = currentTime
                                     progressBar.progress = currentSec
-//                                } /*  barPosition.collect
-                                } catch (ex: java.lang.IllegalStateException) {
+//                                  tvLength.text = currentTime
+                                } catch (ex: IllegalStateException) {
                                     progressBar.progress = 0
-                                    tvLength.text = TimeToString(0) + "/" + playLength
-                                    play
-                                    isPaused.set(true)
-                                    player?.release()
+//                                  tvLength.text = TimeToString(0) + "/" + playLength
+                                    play.isChecked = false
                                 }
                             }
                         }
                     }
-                    checkButton = !checkButton
                 }
+/* ***************************************************** */
             }
 
             player?.setOnCompletionListener {
-                player.release()
-                onInteractionListener.onComplite(song)
-            }
+                player?.stop()
+                val songNext = onInteractionListener.onComplite(song)
+                println("******************* ${songNext.id}  ${songNext.file}")
+                songData(songNext)
+                this@SongViewHolder.bind(songNext)
+                player?.start()
+             }
         }
-
     }
+
 
     private fun TimeToString(playSec: Int): String {
         var playSec1 = playSec
@@ -130,6 +115,19 @@ class SongViewHolder(
             return "${playMin}:0${playSec1}"
         else
             return "${playMin}:${playSec1}"
+    }
+
+    private fun CardSongBinding.songData(song: Song) {
+        player?.reset()
+        player?.setDataSource(songPrefix + song.file)
+        player?.prepare()
+        playDuration = player?.duration ?: 1
+        val playSec: Int = player?.duration?.let { it / 1000 } ?: 1
+        val playLength = TimeToString(playSec)
+        tvSongName.setText(song.file)
+        tvLength.setText("0:00/${playLength}")
+        progressBar.max = player?.duration ?: 1
+        progressBar.progress = 0
     }
 }
 
@@ -142,3 +140,4 @@ class SongDiffCallback : DiffUtil.ItemCallback<Song>() {
         return oldItem == newItem
     }
 }
+
