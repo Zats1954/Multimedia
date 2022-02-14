@@ -1,28 +1,23 @@
 package com.android.multimedia.repository
 
 import com.android.multimedia.Albom
-import com.google.gson.Gson
-import com.google.gson.reflect.TypeToken
-import java.io.InputStream
-import java.io.InputStreamReader
+import com.android.multimedia.BuildConfig.BASE_URL
+import com.android.multimedia.Song
+import com.android.multimedia.api.APIService
 
-class SongRepositoryImplement(private val resource: InputStream): SongRepository  {
+class SongRepositoryImplement(service: APIService) : SongRepository {
 
-    private   val gson = Gson()
-    private   val listSongType = TypeToken.getParameterized(Albom::class.java).type
-    private   val myReader = InputStreamReader(resource)
-    private   val albom: Albom = gson.fromJson(myReader, listSongType)
-//    private   val songPrefix = "https://${albom.subtitle}/examples/mp3/${albom.title}"
-    private   val songPrefix = "http://185.178.44.130/Moria/"
-    private   val songs = albom.tracks
+    var albom : Albom? = service.getAlbom()
 
-    override fun getSongs() = songs
+    override fun getSongs(): List<Song> {
+        return albom?.tracks ?: emptyList()
+    }
 
-    override fun getPrefix() = songPrefix
+    override fun getPrefix(): String {return  BASE_URL}
 
-    override fun getAlbom() = albom.title
+    override fun getAlbom()= albom?.title ?: ""
 
-    override fun getArtist() = albom.artist
+    override fun getArtist() = albom?.artist ?: " "
 
-    override fun getInfo() = "${albom.published}  ${albom.genre}"
+    override fun getInfo() = "${albom?.published}  ${albom?.genre}"
 }

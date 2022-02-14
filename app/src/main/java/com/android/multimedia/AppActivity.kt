@@ -12,22 +12,33 @@ class AppActivity : AppCompatActivity(R.layout.activity_app) {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val viewModel = SongViewModel(resources.openRawResource(R.raw.sng1))
+//        val viewModel = SongViewModel(resources.openRawResource(R.raw.sng1))
+        val viewModel = SongViewModel( )
         val binding = ActivityAppBinding.inflate(getLayoutInflater())
         setContentView(binding.root)
 
 
         val adapter = SongAdapter(object : OnInteractionListener {
-                     override fun onComplite(song: Song): Song {
-                          println("******** ended ${song.id}  ${song.file}")
-                          return viewModel.getNext(song)
-                }
+                     override fun onComplite(song: Song): Song {                          println("******** ended ${song.id}  ${song.file}")
+                         val next = viewModel.getNext(song)
+                         val adapter = binding.rvSongView.adapter
+//                             ?: return
+                         val position = viewModel.listSongs.indexOfFirst { nom ->
+                             nom.id == song.id
+                         }
+                         val nextPosition = position.inc().let {
+                             if (it == adapter?.itemCount) 0 else it
+                         }
+                         adapter?.notifyItemChanged(nextPosition, next)
+//                         adapter?.bindViewHolder(adapter?., nextPosition)
+                         return viewModel.getNext(song)
+                     }
 
                 override fun clickSong(songId: Int): Song {
                     return viewModel.listSongs.first { it.id == songId }
                 }
             },
-            viewModel.songPrefix
+            viewModel.repository.getPrefix()
         )
 
 
