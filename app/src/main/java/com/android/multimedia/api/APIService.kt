@@ -16,7 +16,6 @@ class APIService {
         .connectTimeout(30, TimeUnit.SECONDS)
         .build()
 
-
     suspend inline fun <Albom> OkHttpClient.makeRequest(url: String, gson: Gson = Gson()): Albom =
         suspendCoroutine { continuation ->
             Request.Builder()
@@ -47,7 +46,5 @@ class APIService {
         return runBlocking {
             return@runBlocking client.makeRequest(BASE_URL)
         }
-
     }
-
 }

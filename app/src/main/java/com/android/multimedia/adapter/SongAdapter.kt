@@ -12,14 +12,13 @@ import kotlinx.coroutines.*
 
 
 interface OnInteractionListener {
-    fun onComplite(song: Song): Song
+    fun onComplite(song: Song)
     fun clickSong(songId: Int): Song
 }
 
 class SongAdapter(
     private val onInteractionListener: OnInteractionListener,
     private val songPrefix: String
-
 ) : ListAdapter<Song, SongViewHolder>(SongDiffCallback()) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): SongViewHolder {
@@ -30,6 +29,18 @@ class SongAdapter(
     override fun onBindViewHolder(holder: SongViewHolder, position: Int) {
         val song = getItem(position)
         holder.bind(song)
+    }
+
+    override fun onBindViewHolder(holder: SongViewHolder, position: Int, payLoads: List<Any>) {
+        if (payLoads.isEmpty()) {
+            onBindViewHolder(holder, position)
+        } else {
+            payLoads.forEach {
+                if (it is Song) {
+                    holder.play(it)
+                }
+            }
+        }
     }
 }
 
@@ -43,69 +54,76 @@ class SongViewHolder(
     var playDuration: Int = 1
     var playingSongId: Int = 0
 
+    private val scope = CoroutineScope(Dispatchers.IO)
+
     private val player = mediaObserver.player
 
-    fun bind( song: Song) {
+    fun play(song: Song) {
+        with(binding) {
+            println("***************************  playing song ${song.id} ${song.file}")
+            val songFile = onInteractionListener.clickSong(song.id)
+            if (songFile.id != playingSongId) {
+                songData(song) /* to install song's duration time */
+            }
 
-        binding.apply {
-
-            songData(song)   /* to install song's duration time */
-
-            play.setOnClickListener {
-                println("***************************  playing song ${song.id} ${song.file}")
-                val songFile = onInteractionListener.clickSong(song.id)
-                if (songFile.id != playingSongId) {
-                    songData(song)
-                }
-                /*   ***************************************************** */
-                playingSongId = song.id
-                val playLength = player?.duration
-                var currentSec: Int
-                var currentSecOld: Int = 0
-                var currentTime: String
+            playingSongId = song.id
+            val playLength = player?.duration
+            var currentSec: Int
+            var currentSecOld = 0
+            var currentTime: String
 
 
-                if (!play.isChecked) {
-                    player?.pause()
-                } else {
-                    player?.start()
-                    CoroutineScope(Dispatchers.IO).launch {
-                        while (play.isChecked) {
-                            withTimeout(checkTime) {
-                                try {
-                                    delay(100)  /* для возможности включения паузы */
-                                    if (player?.isPlaying ?: false) {
-                                        currentSec = player?.currentPosition ?: 1
-                                    } else {
-                                        currentSec = currentSecOld  /* для отражения на паузе */
-                                    }
-                                    currentSecOld = currentSec
-                                    currentTime = TimeToString(currentSec / 1000) + "/" + playLength
-                                    progressBar.progress = currentSec
-//                                  tvLength.text = currentTime
-                                } catch (ex: IllegalStateException) {
-                                    progressBar.progress = 0
-//                                  tvLength.text = TimeToString(0) + "/" + playLength
-                                    play.isChecked = false
+            if (player?.isPlaying == true) {
+                player.pause()
+                play.isChecked = false
+            } else {
+                player?.start()
+                play.isChecked = true
+                scope.coroutineContext.cancelChildren()
+                scope.launch {
+                    while (player?.isPlaying == true) {
+                        withTimeout(checkTime) {
+                            try {
+                                delay(100)  /* для возможности включения паузы */
+                                currentSec = if (player.isPlaying) {
+                                    player.currentPosition
+                                } else {
+                                    currentSecOld  /* для отражения на паузе */
                                 }
+                                currentSecOld = currentSec
+                                currentTime =
+                                    TimeToString(currentSec / 1000) + "/" + playLength
+                                progressBar.progress = currentSec
+//                                  tvLength.text = currentTime
+                            } catch (ex: IllegalStateException) {
+                                progressBar.progress = 0
+                                scope.coroutineContext.cancelChildren()
+//                                  tvLength.text = TimeToString(0) + "/" + playLength
+                                play.isChecked = false
                             }
                         }
                     }
                 }
-/* ***************************************************** */
             }
-
-            player?.setOnCompletionListener {
-                player?.stop()
-                val songNext = onInteractionListener.onComplite(song)
-                println("******************* ${songNext.id}  ${songNext.file}")
-                songData(songNext)
-                this@SongViewHolder.bind(songNext)
-                player?.start()
-             }
         }
     }
 
+    fun bind(song: Song) {
+        binding.apply {
+            songData(song)    /* to install song's duration time */
+            play.setOnClickListener {
+                play(song)
+            }
+
+            player?.setOnCompletionListener {
+                progressBar.progress = 0
+                scope.coroutineContext.cancelChildren()
+                play.isChecked = false
+                player.stop()
+                onInteractionListener.onComplite(song)
+            }
+        }
+    }
 
     private fun TimeToString(playSec: Int): String {
         var playSec1 = playSec

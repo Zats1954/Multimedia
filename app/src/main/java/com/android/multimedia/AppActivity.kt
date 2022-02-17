@@ -17,30 +17,24 @@ class AppActivity : AppCompatActivity(R.layout.activity_app) {
         val binding = ActivityAppBinding.inflate(getLayoutInflater())
         setContentView(binding.root)
 
-
         val adapter = SongAdapter(object : OnInteractionListener {
-                     override fun onComplite(song: Song): Song {                          println("******** ended ${song.id}  ${song.file}")
+                     override fun onComplite(song: Song) {
+                         println("******** ended ${song.id}  ${song.file}")
                          val next = viewModel.getNext(song)
-                         val adapter = binding.rvSongView.adapter
-//                             ?: return
+                         val adapter = binding.rvSongView.adapter?: return
                          val position = viewModel.listSongs.indexOfFirst { nom ->
                              nom.id == song.id
                          }
                          val nextPosition = position.inc().let {
-                             if (it == adapter?.itemCount) 0 else it
+                             if (it == adapter.itemCount) 0 else it
                          }
-                         adapter?.notifyItemChanged(nextPosition, next)
-//                         adapter?.bindViewHolder(adapter?., nextPosition)
-                         return viewModel.getNext(song)
+                         adapter.notifyItemChanged(nextPosition, next)
                      }
 
                 override fun clickSong(songId: Int): Song {
                     return viewModel.listSongs.first { it.id == songId }
                 }
-            },
-            viewModel.repository.getPrefix()
-        )
-
+            }, viewModel.repository.getPrefix())
 
         binding.tvAlbomName.text = viewModel.albom
         binding.tvArtistName.text = viewModel.artist
@@ -50,5 +44,4 @@ class AppActivity : AppCompatActivity(R.layout.activity_app) {
 
         adapter.submitList(viewModel.listSongs)
     }
-
 }

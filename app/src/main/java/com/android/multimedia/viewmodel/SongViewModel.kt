@@ -17,7 +17,6 @@ class SongViewModel( ): ViewModel() {
     val info = repository.getInfo()
     val listSongs = repository.getSongs()
 
-
 //    val _playingTime = MutableLiveData<Int>()
 //    val playingTime: LiveData<Int>
 //        get() = _playingTime
@@ -32,7 +31,5 @@ class SongViewModel( ): ViewModel() {
                 listSongs.get(it + 1)
             }
         }.let{ return it }
-//        println("!!нет песни с id ${song.id}")
-//        throw Exception()
     }
 }
